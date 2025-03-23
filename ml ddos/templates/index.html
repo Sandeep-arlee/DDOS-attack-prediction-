@@ -80,7 +80,6 @@
             margin-top: 20px;
         }
 
-        /* Add button styling */
         #stopAttackButton {
             margin-top: 20px;
             padding: 10px 20px;
@@ -100,12 +99,10 @@
 <body>
 
     <div class="container py-5">
-        <!-- Header -->
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1 class="glowing-text">DDoS Attack Detection</h1>
         </div>
 
-        <!-- Attack Status Card -->
         <div id="statusBox" class="card status-box">
             <div class="card-header">
                 Attack Status
@@ -118,29 +115,24 @@
             </div>
         </div>
 
-        <!-- Traffic Chart -->
         <div class="chart-container">
             <canvas id="trafficChart"></canvas>
         </div>
 
-        <!-- Stop Attack Button -->
         <button id="stopAttackButton">Stop Attack</button>
     </div>
 
     <script>
-        // Stop Attack Button Click Event
         document.getElementById('stopAttackButton').addEventListener('click', function() {
             fetch('/stop_attack', { method: 'POST' })
                 .then(response => response.json())
                 .then(data => {
                     alert(data.message);
-                    // Update the status to indicate normal traffic
                     document.getElementById('statusText').textContent = 'Normal Traffic';
                 })
                 .catch(error => console.error('Error stopping attack:', error));
         });
 
-        // Initialize the chart
         const chartCtx = document.getElementById('trafficChart').getContext('2d');
         const chart = new Chart(chartCtx, {
             type: 'line',
@@ -165,16 +157,13 @@
             }
         });
 
-        // Fetch and update data every second
         setInterval(() => {
             fetch('/data')
                 .then(response => response.json())
                 .then(data => {
-                    // Update the chart data
                     chart.data.datasets[0].data = data.packet_counts;
                     chart.update();
 
-                    // Update attack status
                     if (data.attack.detected) {
                         document.getElementById('statusText').textContent = 'Attack Detected';
                         document.getElementById('statusBox').classList.add('attack-status');
