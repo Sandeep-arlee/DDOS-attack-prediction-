@@ -9,21 +9,17 @@ import numpy as np
 
 app = Flask(__name__)
 
-# Thread-safe data structures
 data_lock = threading.Lock()
-packet_deque = deque(maxlen=60)  # Store last 60 seconds of data
+packet_deque = deque(maxlen=60) 
 attack_status = {"detected": False, "attacker_ip": None}
-attack_running = True  # Flag to control if the attack is running
-MAX_REQUESTS_PER_SECOND = 30  # Max allowed packets per second after attack stops
-
-# Load pre-trained model
+attack_running = True  
+MAX_REQUESTS_PER_SECOND = 30  
 with open('ddos_model.pkl', 'rb') as model_file:
     model = pickle.load(model_file)
 
-# Simulation parameters
-NORMAL_TRAFFIC = 30  # Packets/sec
-ATTACK_TRAFFIC = 500  # Increased number of packets/sec during attack (more aggressive attack)
-ATTACK_INTERVAL = 5  # Reduced the interval between simulated attacks (more frequent attacks)
+NORMAL_TRAFFIC = 30  
+ATTACK_TRAFFIC = 500  
+ATTACK_INTERVAL = 5  
 
 def generate_traffic():
     """Simulate traffic with regular attack bursts"""
@@ -35,12 +31,11 @@ def generate_traffic():
         timestamp = datetime.now()
         
         with data_lock:
-            # Generate normal traffic
+            
             for _ in range(NORMAL_TRAFFIC):
                 source_ip = f"192.168.1.{random.randint(1, 50)}"
                 packet_deque.append((timestamp, source_ip))
             
-            # Simulate attack every ATTACK_INTERVAL seconds
             if current_time - last_attack_time > ATTACK_INTERVAL:
                 last_attack_time = current_time
                 attacker_ip = f"192.168.1.{random.randint(100, 200)}"
@@ -63,7 +58,6 @@ def detect_ddos():
             current_time = datetime.now()
             time_threshold = current_time - timedelta(seconds=1)
             
-            # Count recent packets and unique IPs
             ip_counts = {}
             for ts, ip in packet_deque:
                 if ts > time_threshold:
@@ -72,11 +66,10 @@ def detect_ddos():
             packet_count = sum(ip_counts.values())
             unique_ips = len(ip_counts)
             
-            # Predict attack using the machine learning model
             features = np.array([[packet_count, unique_ips]])
             prediction = model.predict(features)[0]
 
-            if prediction == 1:  # Attack detected
+            if prediction == 1:  
                 attack_status.update({
                     "detected": True,
                     "attacker_ip": max(ip_counts, key=ip_counts.get),
@@ -94,7 +87,6 @@ def index():
 @app.route('/data')
 def get_data():
     with data_lock:
-        # Generate chart data (last 60 seconds)
         time_window = datetime.now() - timedelta(seconds=60)
         counts = [0] * 60
         
@@ -111,7 +103,7 @@ def get_data():
 @app.route('/stop_attack', methods=['POST'])
 def stop_attack():
     global attack_running
-    attack_running = False  # Stop the attack by limiting the number of requests per second
+    attack_running = False  
     return jsonify({"message": "Attack stopped. Normal traffic generation resumed."})
 
 def generate_limited_traffic():
@@ -124,18 +116,15 @@ def generate_limited_traffic():
         timestamp = datetime.now()
         
         with data_lock:
-            # Generate normal traffic
             for _ in range(NORMAL_TRAFFIC):
                 source_ip = f"192.168.1.{random.randint(1, 50)}"
                 packet_deque.append((timestamp, source_ip))
             
-            if not attack_running:  # If attack is stopped, limit the number of packets
-                # Limit to MAX_REQUESTS_PER_SECOND requests after attack is stopped
+            if not attack_running:  
                 for _ in range(MAX_REQUESTS_PER_SECOND):
                     source_ip = f"192.168.1.{random.randint(1, 50)}"
                     packet_deque.append((timestamp, source_ip))
 
-            # Simulate attack every ATTACK_INTERVAL seconds
             if attack_running and current_time - last_attack_time > ATTACK_INTERVAL:
                 last_attack_time = current_time
                 attacker_ip = f"192.168.1.{random.randint(100, 200)}"
